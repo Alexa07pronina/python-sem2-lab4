@@ -1,4 +1,4 @@
-from src.protocols import TaskSource
+from src.protocols import TaskSource, TaskHandler
 from src.source.fake_api_source import FakeApiSource
 from src.source.file_source import FileSource
 from src.source.generate_source import GeneratorSource
@@ -12,3 +12,12 @@ def test_task_protocol():
     assert isinstance(GeneratorSource(2),TaskSource)
     assert isinstance(FileSource("test.txt"),TaskSource)
     assert not isinstance(FakeSource(),TaskSource)
+
+
+def test_task_handler_without_handle():
+    """Проверка: класс без handle() не реализует протокол"""
+    class BadHandler:
+        """Хендлер без метода handle"""
+        pass
+
+    assert not isinstance(BadHandler(), TaskHandler)

@@ -1,5 +1,7 @@
+import pytest
+
 from src.models import Task, TaskStatus
-from src.queue import TaskQueue
+from src.task_queue import TaskQueue
 from src.source.fake_api_source import FakeApiSource
 from src.source.file_source import FileSource
 from src.source.generate_source import GeneratorSource
@@ -63,14 +65,14 @@ def test_task_queue_repeated_iteration():
 
 
 def test_task_queue_filter_by_status():
-    """filter_by_status лениво отдаёт задачи с нужным статусом"""
+    """filter(field='status') лениво отдаёт задачи с нужным статусом"""
     src = FakeApiSource("https://test.local")
     t_pending, t_done, _ = src._tasks
     t_done.start()
     t_done.complete()
 
     queue = TaskQueue(src)
-    filtered = queue.filter_by_status(TaskStatus.PENDING)
+    filtered = queue.filter(field="status", value=TaskStatus.PENDING)
     assert hasattr(filtered, "__next__")
 
     result = list(filtered)
@@ -80,7 +82,7 @@ def test_task_queue_filter_by_status():
 
 
 def test_task_queue_filter_by_priority(tmp_path):
-    """filter_by_priority по FileSource"""
+    """filter(field='priority') по FileSource"""
     path = tmp_path / "mix.txt"
     path.write_text(
         '{"payload": {}, "priority": 1}\n'
@@ -90,21 +92,31 @@ def test_task_queue_filter_by_priority(tmp_path):
     )
     queue = TaskQueue(FileSource(str(path)))
 
-    filtered = list(queue.filter_by_priority(3))
+    filtered = list(queue.filter(field="priority", value=3))
 
     assert len(filtered) == 1
     assert filtered[0].priority == 3
 
 
 def test_task_queue_filter_by_ready():
-    """filter_by_ready: те же объекты Task в FakeApiSource сохраняют состояние"""
+    """filter(field='is_ready')"""
     src = FakeApiSource("https://test.local")
     first, *_ = src._tasks
     first.start()
 
     queue = TaskQueue(src)
-    ready = list(queue.filter_by_ready())
+    ready = list(queue.filter(field="is_ready", value=True))
     assert len(ready) == 2
+
+
+def test_task_queue_filter_unknown_field_raises(tmp_path):
+    """Неизвестное имя поля: ValueError после предупреждения в логе"""
+    path = tmp_path / "one.txt"
+    path.write_text('{"payload": {}}\n', encoding="utf-8")
+    queue = TaskQueue(FileSource(str(path)))
+
+    with pytest.raises(ValueError, match="неизвестное поле"):
+        list(queue.filter(field="no_such_attr", value=0))
 
 
 def test_task_queue_iter_returns_new_iterator():

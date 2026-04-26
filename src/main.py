@@ -2,11 +2,11 @@ from src.loader import fetch_tasks
 from src.source.file_source import FileSource
 from src.source.generate_source import GeneratorSource
 from src.source.fake_api_source import FakeApiSource
-from src.queue import TaskQueue
+from src.task_queue import TaskQueue
 from pathlib import Path
 
 def main() -> None:
-    """Точка входа"""
+    """Точка входа для Lab 3"""
     project_root = Path(__file__).parent.parent
     file_path = project_root/"file_source.txt"
     if not file_path.exists():
