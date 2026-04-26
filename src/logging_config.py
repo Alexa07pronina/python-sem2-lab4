@@ -4,9 +4,7 @@ import sys
 from pathlib import Path
 from typing import Optional, Tuple
 
-# Глобальный логгер
 _logger: Optional[logging.Logger] = None
-
 
 def setup_logging(
         level: str = "INFO",

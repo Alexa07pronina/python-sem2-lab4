@@ -8,9 +8,9 @@ async def test_low_priority_handler_success():
     """хендлер низкого приоритета """
     handler = LowPriorityHandler()
     task = Task(payload={"Test Low":"1"}, priority=2)
-    # Мокаем sleep, чтобы не ждать реальные 0.5–2.5 секунды
+    #мокем sleep, чтобы не ждать несколько секунд
     with patch('asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
-        # Мокаем логирование, чтобы изолировать тест от файловой системы
+        #мокаем логирование, чтобы изолировать тест от файловой системы
         with patch('src.handlers.log_info', new_callable=AsyncMock) as mock_log:
             await handler.handle(task)
             mock_sleep.assert_called_once_with(2 * 0.5)
