@@ -8,7 +8,7 @@ from src.logging_config import setup_logging,log_debug, log_info, log_warning
 
 @pytest.fixture(autouse=True)
 def reset_lab4_logger():
-    """Автоматически очищает логгер 'lab4' перед и после каждого теста."""
+    """Автоматически очищает логгер 'lab4' перед и после каждого теста"""
     logger = logging.getLogger("lab4")
     logger.handlers.clear()
     yield
@@ -18,7 +18,7 @@ def reset_lab4_logger():
 
 @pytest.mark.asyncio
 async def test_setup_logging_adds_handlers(tmp_path):
-    """Проверка: при вызове setup_logging добавляются FileHandler и StreamHandler."""
+    """Проверка: при вызове setup_logging добавляются FileHandler и StreamHandler"""
     log_file = tmp_path / "test_setup.log"
     logger, _ = setup_logging(log_file=str(log_file), mode="w")
 
@@ -32,7 +32,7 @@ async def test_setup_logging_adds_handlers(tmp_path):
 
 @pytest.mark.asyncio
 async def test_file_handler_writes_info_and_above(tmp_path):
-    """Проверка: в файл пишутся только сообщения >= INFO."""
+    """Проверка: в файл пишутся только сообщения >= INFO"""
     log_file = tmp_path / "test_file.log"
     setup_logging(log_file=str(log_file), mode="w")
 
@@ -47,7 +47,7 @@ async def test_file_handler_writes_info_and_above(tmp_path):
 
 @pytest.mark.asyncio
 async def test_formatter_applies_correct_format(tmp_path):
-    """Проверка: форматтер записывает время, имя и уровень."""
+    """Проверка: форматтер записывает время, имя и уровень"""
     log_file = tmp_path / "test_format.log"
     setup_logging(log_file=str(log_file), mode="w")
 

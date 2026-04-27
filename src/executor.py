@@ -1,11 +1,9 @@
-import logging
 import asyncio
 import random
 from src.models import Task
-from src.special_errors import ExecutorNotStartedError, TaskProcessingError
-from src.handlers import HighPriorityHandler, LowPriorityHandler
+from src.special_errors import ExecutorNotStartedError, TaskProcessingError, ExecutorError
 from src.protocols import TaskHandler
-from typing import Optional
+from typing import Optional,List
 from src.logging_config import (log_info, log_warning, log_error)
 
 class AsyncExecutor:
@@ -14,10 +12,18 @@ class AsyncExecutor:
         self._workers = workers
         self._queue:Optional[asyncio.Queue]=None
         self._queue_size = queue_size
-        self._handlers:dict = {'high': HighPriorityHandler(), 'low': LowPriorityHandler()}
+        self._handlers: List[TaskHandler] = []
         self._worker_tasks:list[asyncio.Task] = list()
         self._running:bool = False
         self._errors:list[TaskProcessingError] = list()
+
+    async def register_handler(self, handler: TaskHandler) -> None:
+        """ Регистрация хендлеров в определенном порядке """
+        if not isinstance(handler, TaskHandler):
+            raise TypeError(f"Хендлер не удовлетворяет протоколу TaskHandler")
+        self._handlers.append(handler)
+        await log_info(f"Зарегистрирован хендлер: {handler.__class__.__name__}")
+
     @property
     def errors(self)->list[TaskProcessingError]:
         """ Список ошибок"""
@@ -33,10 +39,16 @@ class AsyncExecutor:
             for i in range(self._workers)
         ]
         return self
-    def _select_handler(self, task:Task) -> TaskHandler:
-        """Выбор обработчика в зависимости от приоритета задачи"""
-        if task.priority>3: return self._handlers['high']
-        return self._handlers['low']
+
+    def _select_handler(self, task: Task) -> TaskHandler:
+        """ Выбор хендлера для задачи """
+        if not self._handlers:
+            raise ExecutorError("Нет зарегестрированных хендлеров")
+
+        for handler in self._handlers:
+            if handler.can_handle(task):
+                return handler
+        raise ExecutorError(f"Нет подходящих обработчиков для задачи {task.id[:8]}")
 
     async def wait_all(self)->None:
         """Ожидание завершения всех задач"""
@@ -47,6 +59,7 @@ class AsyncExecutor:
         if self._queue is None or not self._running:
             raise ExecutorNotStartedError()
         await self._queue.put(task)
+        await log_info(f"Задача {task.id[:8]} отправлена в очередь")
 
     async def __aexit__(self, exc_type, exc_val, exc_tb)->bool:
         """Завершение исполнителя"""
@@ -69,23 +82,15 @@ class AsyncExecutor:
                 await log_info(f"{name} завершил работу")
                 break
             try:
-                task.start()
-                await log_info(f"{name}: Задача {task.id[:8]} запущена")
+                await log_info(f"{name}: задача {task.id[:8]} передана хендлеру")
                 handler = self._select_handler(task)
-                await handler.handle(task)
-                random.seed(67)
-                rand_num=random.randint(1,100)
-                if '6' in str(rand_num) or '7' in str(rand_num):
-                    task.fail()
-                else:
-                    task.complete()
-                await log_info(f"{name}: Задача {task.id[:8]} завершена")
+                await handler.handle(task,name)
+                await log_info(f"{name}: задача {task.id[:8]} обработана хендлером")
+
             except Exception as e:
                 await log_error(f"{name}: ошибка {task.id[:8]}: {e}")
-                error = TaskProcessingError(f"{task.id[:8]}: {e}")
+                error = TaskProcessingError(f"[{task.id[:8]}] {e}")
                 self._errors.append(error)
-                if task.status == 'in_progress':
-                    task.fail()
-                    await log_warning(f"{name}: задача {task.id[:8]} помечена как failed")
+
             finally:
                 self._queue.task_done()

@@ -19,5 +19,4 @@ def test_task_handler_without_handle():
     class BadHandler:
         """Хендлер без метода handle"""
         pass
-
     assert not isinstance(BadHandler(), TaskHandler)

@@ -12,9 +12,9 @@ async def test_low_priority_handler_success():
     with patch('asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
         #мокаем логирование, чтобы изолировать тест от файловой системы
         with patch('src.handlers.log_info', new_callable=AsyncMock) as mock_log:
-            await handler.handle(task)
+            await handler.handle(task,"Test Low")
             mock_sleep.assert_called_once_with(2 * 0.5)
-            assert mock_log.call_count == 2
+            assert mock_log.call_count == 3
 
 
 @pytest.mark.asyncio
@@ -25,9 +25,9 @@ async def test_high_priority_handler_success():
 
     with patch('asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
         with patch('src.handlers.log_info', new_callable=AsyncMock) as mock_log:
-            await handler.handle(task)
+            await handler.handle(task,"Test High")
             mock_sleep.assert_called_once_with(4 * 0.1)
-            assert mock_log.call_count == 2
+            assert mock_log.call_count == 3
 
 
 @pytest.mark.asyncio
@@ -44,5 +44,5 @@ async def test_handler_sleep_calculation(priority, expected_delay, handler_cls):
 
     with patch('asyncio.sleep', new_callable=AsyncMock) as mock_sleep:
         with patch('src.handlers.log_info', new_callable=AsyncMock):
-            await handler.handle(task)
+            await handler.handle(task,"Test")
             mock_sleep.assert_called_once_with(expected_delay)

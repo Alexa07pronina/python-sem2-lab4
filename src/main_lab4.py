@@ -2,7 +2,7 @@ import asyncio
 from src.logging_config import setup_logging, log_info, log_warning, shutdown_logging
 from src.executor import AsyncExecutor
 from src.source.generate_source import GeneratorSource
-
+from src.handlers import HighPriorityHandler, LowPriorityHandler
 
 async def main():
     """Точка входа для Lab 4 """
@@ -13,16 +13,16 @@ async def main():
         source = GeneratorSource(count_task=7, seed=42)
         tasks = source.get_tasks()
         async with AsyncExecutor(workers=2, queue_size=4) as executor:
+            await executor.register_handler(HighPriorityHandler())
+            await executor.register_handler(LowPriorityHandler())
+
             async def producer():
-                for task in tasks:
-                    await executor.submit(task)
-                    await log_info(f"Отправлена задача {task.id[:8]}")
+                    for task in tasks:
+                        await executor.submit(task)
             await asyncio.gather(producer(), executor.wait_all())
 
         if executor.errors:
-            await log_warning(f"Ошибки {len(executor.errors)}:" )
-            for err in executor.errors:
-                await log_warning(f" {err}")
+            await log_warning(f"Завершено с ошибками: количество - {len(executor.errors)}" )
         else:
             await log_info("Все задачи обработаны успешно")
             print("Все задачи обработаны успешно")

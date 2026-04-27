@@ -10,6 +10,10 @@ class TaskSource(Protocol):
 
 @runtime_checkable
 class TaskHandler(Protocol):
-    async def handle(self, task: Task) -> None:
+
+    def can_handle(self, task: Task) -> bool:
+        """ Проверка возможности выполнения"""
+        ...
+    async def handle(self, task: Task, worker: str) -> None:
         """Обработка задачи"""
         ...
